@@ -1,15 +1,16 @@
-# Ansible workflow runner
+# Ansible Tower(AWX) workflow runner
 
 ## What is this.
 Ansible workflow runner on local command line.  
 This tool is to run workflow template without Ansible AWX server.  
+And this can also check `extra_vars` dependency in each jobs in workflow by `dry_run` mode.  
 
-Please use this command as follows:
+Please use this command as follows:  
 ```
 $ python3 workflow_runner.py `workflow file path` -i `inventory file path` (--ask-pass or --private-key `file path`)
 ```
 
-If you want to check settings correctness, you can use `dry_run` mode.
+If you want to check `extra_vars` dependency correctness, you can use `dry_run` mode.  
 ```
 $ python3 workflow_runner.py `workflow file path` -i `inventory file path` --dry_run
 ```
