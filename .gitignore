@@ -1,0 +1,8 @@
+.*pyc
+#resource_files
+.idea
+venv
+!.gitkeep
+**/*.retry
+*.egg-info
+**/__pycache__/*
