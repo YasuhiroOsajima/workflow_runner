@@ -13,6 +13,12 @@
 
     - debug: var=pwd_result
 
-    # - name: Register pwd_result
-    #   set_fact:
-    #     catalog: "{{ pwd_result.std_out }}"
+    - name: Register pwd_result
+      set_fact:
+        pwd_fact: pwd_result.stdout
+
+    - debug: var="{{ pwd_fact }}"
+
+    - set_stats:
+        data:
+          pwd_stats: "{{ pwd_result.stdout }}"

@@ -41,6 +41,8 @@ workflow_file         target workflow file path.
 $ pip3 install requirements.txt
 $ pip3 install -e .
 ```
+And if you use ssh login, you have to install sshpass by Ansible's dependency.  
+
 
 ## Attention
 - job_template names in workflow YAML file have to be same as job_template YAML file name which without '.yml'.

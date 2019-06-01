@@ -13,6 +13,4 @@
 
     - debug: var=pwd_result
 
-    # - name: Register pwd_result
-    #   set_fact:
-    #     catalog: "{{ pwd_result.std_out }}"
+    - debug: var=pwd_stats
