@@ -67,7 +67,9 @@ class WorkflowNode:
                             stats_var_path = "{}/{}-{}-{}.txt".format(
                                 work_dir, node_id, v_name, time_stamp)
                             set_stats_file_list.append(stats_var_path)
-                            debug_job = [{'copy': {'dest': stats_var_path,
+                            debug_job = [{'name': 'Register after extra_vars '
+                                                  'temporarily file',
+                                          'copy': {'dest': stats_var_path,
                                                    'content': v_val}}]
                             tasks = \
                                 tasks[:idx + 1] + debug_job + tasks[idx + 1:]
