@@ -88,10 +88,13 @@ class WorkflowNode:
 
         if set_stats_files:
             for stats_file in set_stats_files:
-                with open(stats_file, "r") as stf:
-                    stats_value: str = stf.read()
-                    stats_key: str = stats_file.split('-')[1]
-                    after_extra_vars.update({stats_key: stats_value})
+                try:
+                    with open(stats_file, "r") as stf:
+                        stats_value: str = stf.read()
+                        stats_key: str = stats_file.split('-')[1]
+                        after_extra_vars.update({stats_key: stats_value})
+                except FileNotFoundError:
+                    pass
 
         self.current_node.set_after_extra_vars(after_extra_vars)
 
