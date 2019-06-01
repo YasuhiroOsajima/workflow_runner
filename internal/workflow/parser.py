@@ -9,7 +9,7 @@ import json
 import yaml
 
 from internal.workflow import tree
-from internal.playbook import runner
+from internal.playbook import runner, parser
 
 
 class DryRunFailed(Exception):
@@ -47,7 +47,7 @@ class WorkflowNode:
     def _prepare_playbook(self, work_dir: str) -> (str, list):
         """ Generate copy playbook file with dump `set_stats` value. """
 
-        set_stats = []
+        set_stats_file_list = []
 
         if self.current_node.define_stats:
             # Create copy playbook and replace playbook to use.
@@ -66,7 +66,7 @@ class WorkflowNode:
                         for v_name, v_val in task['set_stats']['data'].items():
                             stats_var_path = "{}/{}-{}-{}.txt".format(
                                 work_dir, node_id, v_name, time_stamp)
-                            set_stats.append(stats_var_path)
+                            set_stats_file_list.append(stats_var_path)
                             debug_job = [{'copy': {'dest': stats_var_path,
                                                    'content': v_val}}]
                             tasks = \
@@ -80,7 +80,7 @@ class WorkflowNode:
         else:
             playbook_path = self.current_node.playbook_path
 
-        return playbook_path, set_stats
+        return playbook_path, set_stats_file_list
 
     def _set_after_extra_vars(self, set_stats_files: [str]):
         after_extra_vars = {}
@@ -114,75 +114,45 @@ class WorkflowNode:
         return r_code
 
     @staticmethod
-    def _is_variable(value: str) -> bool:
-        return '{{' in value and '.' not in value
-
-    @staticmethod
-    def _get_variable_name(value: str) -> set:
-        defined = set()
-        for sp_word in value.split('{{ '):
-            if ' }}' in sp_word:
-                defined.add(sp_word.split(' }}')[0])
-
-        return defined
-
-    def _parse_task_dick(self, task_dict: dict, defined: set) -> set:
-        for val in task_dict.values():
-            if isinstance(val, dict):
-                defined = defined | self._parse_task_dick(val, defined)
-            elif isinstance(val, str):
-                if self._is_variable(val):
-                    defined = defined | self._get_variable_name(val)
-            else:
-                pass
-
-        return defined
-
-    def _get_all_vars_from_playbook(self) -> (str, set):
-        with open(self.current_node.playbook_path, "r") as pbp:
-            playbook: dict = yaml.load(stream=pbp, Loader=yaml.SafeLoader)
-
-        defined_vars = set()
-        playbook_dict: dict = playbook[0]
-        for key, sub_dict in playbook_dict.items():
-            if key in ('vars', 'environment'):
-                for value in sub_dict.values():
-                    if self._is_variable(value):
-                        defined_vars = \
-                            defined_vars | self._get_variable_name(value)
-
-            if 'tasks' in key:
-                # `tasks` is list of task dictionary.
-
-                for task_dict in sub_dict:
-                    defined_in_tasks = set()
-                    defined_vars = \
-                        defined_vars | self._parse_task_dick(task_dict,
-                                                             defined_in_tasks)
-
-        return self.current_node.playbook_path, defined_vars
-
-    def dry_run(self):
-        """ Exec dry run check each playbook. """
-
-        parse_result: tuple = self._get_all_vars_from_playbook()
-        playbook_path: str = parse_result[0]
-        necessary: set = parse_result[1]
-        defined: set = set(self.current_node.before_extra_vars.keys())
-
+    def _check_vars_covered(necessary: set, defined: set, playbook_path: str):
         if not necessary <= defined:
-            undefined = necessary - defined
+            undefined: set = necessary - defined
             message = "Necessary variables not defined. """ \
                       "playbook: '{}', variable: {}".format(playbook_path,
                                                             undefined)
             raise DryRunFailed(message)
+
+    def dry_run(self):
+        """ Exec dry run check each playbook. """
+
+        playbook_path: str = self.current_node.playbook_path
+        result: tuple = parser.get_necessary_variable_keys(playbook_path)
+        necessary_at_started: set = result[0]
+        necessary_in_tasks: dict = result[1]
+
+        defined_at_started: set = set(self.current_node.before_extra_vars.keys())
+        set_fact_in_tasks: dict = self.current_node.define_fact
+        defined_on_vars_header: set = self.current_node.define_vars_header
+
+        # Check variables defined for playbook header.
+        self._check_vars_covered(necessary_at_started, defined_at_started,
+                                 playbook_path)
+
+        # Check variables defined for playbook tasks.
+        defined: set = defined_at_started | defined_on_vars_header
+        for task_idx, necessary_key in necessary_in_tasks.items():
+            if set_fact_in_tasks:
+                defined = defined | set_fact_in_tasks[task_idx]
+
+            self._check_vars_covered(necessary_key, defined, playbook_path)
 
         print("- OK. Variables in playbook '{}' are available at running."
               .format(playbook_path))
         print()
 
 
-def parse(workflow_file_path: str, dry_run: bool) -> WorkflowNode:
+def parse(workflow_file_path: str, dry_run: bool,
+          extra_vars_arg: dict) -> WorkflowNode:
     """
     parse workflow file and return tree object.
     """
@@ -190,6 +160,7 @@ def parse(workflow_file_path: str, dry_run: bool) -> WorkflowNode:
     with open(workflow_file_path, "r") as wfp:
         workflow_dict = yaml.load(stream=wfp, Loader=yaml.SafeLoader)
 
-    top_node: tree.Node = tree.generate_workflow_tree(workflow_dict, dry_run)
+    top_node: tree.Node = tree.generate_workflow_tree(workflow_dict, dry_run,
+                                                      extra_vars_arg)
     workflow = WorkflowNode(top_node)
     return workflow

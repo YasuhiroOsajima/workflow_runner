@@ -7,12 +7,12 @@ And this can also check `extra_vars` dependency in each jobs in workflow by `dry
 
 Please use this command as follows:  
 ```
-$ python3 workflow_runner.py `workflow file path` -i `inventory file path` (--ask-pass or --private-key `file path`)
+$ python3 workflow_runner.py `workflow file path` -i `inventory file path` (--ask-pass or --private-key `file path`) [-e '@extra-vars_file_path']
 ```
 
 If you want to check `extra_vars` dependency correctness, you can use `dry_run` mode.  
 ```
-$ python3 workflow_runner.py `workflow file path` -i `inventory file path` --dry_run
+$ python3 workflow_runner.py `workflow file path` -i `inventory file path` --dry_run [-e '@extra-vars_file_path']
 ```
 
 **positional arguments:**
@@ -22,15 +22,18 @@ workflow_file         target workflow file path.
 
 **optional arguments:**
 ```
--h, --help                   show this help message and exit
--i INVENTORY_FILE, --inventory_file INVENTORY_FILE   target inventory file path.
--u USER, --user USER         ansible's `ansible_ssh_user` option. Default is current user.
---port PORT                  ansible's `ansible_port` option. Default is `22`.
---become-user BECOME_USER    ansible's `ansible_become_user` option. Default is `root`.
--K, --ask-become-pass        ansible's `ansible_become_pass` option.
--k, --ask-pass               Password auth enable for ansible remote login. Please specify this or `--private-key`.
---private-key PRIVATE_KEY    Private key file path for ansible remote login. Please specify this or `--ask-pass`.
---dry_run                    Run with `dry_run` mode.
+-h, --help                                            show this help message and exit
+-i INVENTORY_FILE, --inventory_file INVENTORY_FILE    Target inventory file path.
+-u USER, --user USER                                  Ansible's `ansible_ssh_user` option. Default is current user.
+--port PORT                                           Ansible's `ansible_port` option. Default is `22`.
+--become-user BECOME_USER                             Ansible's `ansible_become_user` option. Default is `root`.
+-K, --ask-become-pass                                 Ansible's `ansible_become_pass` option.
+-e EXTRA_VARS, --extra-vars EXTRA_VARS                Ansible's extra_vars option. Default is `None`.
+-k, --ask-pass                                        Password auth enable for ansible remote login.
+                                                      Please specify this or `--private-key`.
+--private-key PRIVATE_KEY                             Private key file path for ansible remote login.
+                                                      Please specify this or `--ask-pass`.
+--dry_run                                             Run with `dry_run` mode.
 ```
 
 ## Setup

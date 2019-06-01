@@ -11,10 +11,11 @@ from internal.workflow import parser as w_parser
 class JobRecord:
     """ Data class for recording job result. """
 
-    def __init__(self, job_template_name: str):
+    def __init__(self, job_id: int, job_template_name: str):
         self._start: datetime = datetime.now(timezone.utc)
         self._end: str = ''
 
+        self._job_id: int = job_id
         self._job_template_name: str = job_template_name
         self._type: str = 'job_template'  # workflow_job is no supported yet.
         self._status: str = ''
@@ -40,17 +41,22 @@ class JobRecord:
         return str(self._end - self._start).split(':')[-1]
 
     @property
-    def job_template_name(self):
+    def job_id(self) -> int:
+        """ getter for job_template_name """
+        return self._job_id
+
+    @property
+    def job_template_name(self) -> str:
         """ getter for job_template_name """
         return self._job_template_name
 
     @property
-    def type(self):
+    def type(self) -> str:
         """ getter for job type """
         return self._type
 
     @property
-    def status(self):
+    def status(self) -> str:
         """ getter for job result """
         return self._status
 
@@ -89,7 +95,8 @@ class WorkflowRunner:
                 self.workflow_node.go_next_child(node)
                 self.dry_run()
 
-    def run(self, auth_extra_vars: str, work_dir: str) -> list:
+    def run(self, auth_extra_vars: str, work_dir: str,
+            job_id: int = 1) -> list:
         """ Execute each Ansible playbook. """
 
         job_template_name: str = self.workflow_node.current_node.node_name
@@ -98,7 +105,7 @@ class WorkflowRunner:
         print('-----')
         print("<< Execute job: '{}' >>".format(job_template_name))
 
-        record = JobRecord(job_template_name)
+        record = JobRecord(job_id, job_template_name)
 
         r_code = self.workflow_node.run(self.inventory_file_path,
                                         auth_extra_vars,
@@ -111,23 +118,24 @@ class WorkflowRunner:
             record.set_result_failed()
 
         self.executed.append(record)
+        job_id += 1
 
         # Go next job
         if r_code == 0 and self.workflow_node.current_node.success:
             for node in self.workflow_node.current_node.success:
                 self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir)
+                self.run(auth_extra_vars, work_dir, job_id)
 
         elif r_code != 0 and self.workflow_node.current_node.failed:
             for node in self.workflow_node.current_node.failed:
                 self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir)
+                self.run(auth_extra_vars, work_dir, job_id)
         else:
             pass
 
         if self.workflow_node.current_node.always:
             for node in self.workflow_node.current_node.always:
                 self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir)
+                self.run(auth_extra_vars, work_dir, job_id)
 
         return self.executed

@@ -28,7 +28,8 @@ class AuthInfo:
     @staticmethod
     def _check_private_key(private_key: str):
         if private_key and not os.path.isfile(private_key):
-            print('Invalid argument.')
+            print()
+            print('<< Invalid argument. >>')
             print('Specified private key not found.')
             sys.exit(2)
 

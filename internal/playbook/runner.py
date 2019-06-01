@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Runner class for playbook.
+Runner method to start running playbook.
 """
 
 import shutil
