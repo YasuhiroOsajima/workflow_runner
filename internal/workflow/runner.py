@@ -80,20 +80,24 @@ class WorkflowRunner:
 
         self.workflow_node.dry_run()
 
+        current = self.workflow_node.current_node
         if self.workflow_node.current_node.success:
             for node in self.workflow_node.current_node.success:
                 self.workflow_node.go_next_child(node)
                 self.dry_run()
+                self.workflow_node.go_back(current)
 
         if self.workflow_node.current_node.failed:
             for node in self.workflow_node.current_node.failed:
                 self.workflow_node.go_next_child(node)
                 self.dry_run()
+                self.workflow_node.go_back(current)
 
         if self.workflow_node.current_node.always:
             for node in self.workflow_node.current_node.always:
                 self.workflow_node.go_next_child(node)
                 self.dry_run()
+                self.workflow_node.go_back(current)
 
     def run(self, auth_extra_vars: str, work_dir: str,
             job_id: int = 1) -> list:
@@ -118,24 +122,30 @@ class WorkflowRunner:
             record.set_result_failed()
 
         self.executed.append(record)
-        job_id += 1
 
         # Go next job
+        current = self.workflow_node.current_node
         if r_code == 0 and self.workflow_node.current_node.success:
             for node in self.workflow_node.current_node.success:
+                job_id += 1
                 self.workflow_node.go_next_child(node)
                 self.run(auth_extra_vars, work_dir, job_id)
+                self.workflow_node.go_back(current)
 
         elif r_code != 0 and self.workflow_node.current_node.failed:
             for node in self.workflow_node.current_node.failed:
+                job_id += 1
                 self.workflow_node.go_next_child(node)
                 self.run(auth_extra_vars, work_dir, job_id)
+                self.workflow_node.go_back(current)
         else:
             pass
 
         if self.workflow_node.current_node.always:
             for node in self.workflow_node.current_node.always:
+                job_id += 1
                 self.workflow_node.go_next_child(node)
                 self.run(auth_extra_vars, work_dir, job_id)
+                self.workflow_node.go_back(current)
 
         return self.executed

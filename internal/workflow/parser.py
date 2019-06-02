@@ -8,7 +8,7 @@ import json
 
 import yaml
 
-from internal.workflow import tree
+from internal.workflow import tree, node
 from internal.playbook import runner, parser
 
 
@@ -30,19 +30,24 @@ class WorkflowNode:
     workflow tree object.
     """
 
-    def __init__(self, top_node: tree.Node):
-        self.current_node: tree.Node = top_node
-        self.parent_node: tree.Node = tree.Node(0, 'None', '')
+    def __init__(self, top_node: node.Node):
+        self.current_node: node.Node = top_node
+        self.parent_node: node.Node = node.Node(0, 'None', '')
 
     def check_var_defined(self, var_name: str):
         """ Check target extra_vars already defined. """
 
         return var_name in self.parent_node.before_extra_vars
 
-    def go_next_child(self, next_node):
+    def go_next_child(self, next_node: node.Node):
         """ Move forward current job_template node. """
         self.parent_node = self.current_node
         self.current_node = next_node
+
+    def go_back(self, top_on_parent_node: node.Node):
+        """ Move back current job_template node. """
+        self.current_node = self.parent_node
+        self.parent_node = top_on_parent_node
 
     def _prepare_playbook(self, work_dir: str) -> (str, list):
         """ Generate copy playbook file with dump `set_stats` value. """
@@ -107,8 +112,7 @@ class WorkflowNode:
         playbook, set_stats_list = self._prepare_playbook(work_dir)
 
         if self.parent_node.node_id != 0:
-            self.current_node.set_before_extra_vars(
-                self.parent_node.after_extra_vars)
+            self.current_node.set_before_extra_vars(self.parent_node)
 
         extra_vars_json: str = json.dumps(self.current_node.before_extra_vars)
 
@@ -165,7 +169,7 @@ def parse(workflow_file_path: str, dry_run: bool,
     with open(workflow_file_path, "r") as wfp:
         workflow_dict = yaml.load(stream=wfp, Loader=yaml.SafeLoader)
 
-    top_node: tree.Node = tree.generate_workflow_tree(workflow_dict, dry_run,
+    top_node: node.Node = tree.generate_workflow_tree(workflow_dict, dry_run,
                                                       extra_vars_arg)
     workflow = WorkflowNode(top_node)
     return workflow
