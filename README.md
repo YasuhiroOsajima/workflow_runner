@@ -43,6 +43,43 @@ $ pip3 install -e .
 ```
 And if you use ssh login, you have to install sshpass by Ansible's dependency.  
 
+Dry run sample workflow.
+```
+# python cmd/workflow_runner.py resource_files/workflow/sample_workflow.yml -i resource_files/inventory/sample_inventory.txt -e "@resource_files/extra_vars/extra-vars.yml" --dry_run
+
+Check all variables are defined at running each job_template.
+------
+- OK. Variables in playbook '/vagrant/data/workflow_runner/resource_files/job_template/sample_job_template/sample_job1.yml' are available at running.
+
+- OK. Variables in playbook '/vagrant/data/workflow_runner/resource_files/job_template/sample_job_template/sample_job2.yml' are available at running.
+
+- OK. Variables in playbook '/vagrant/data/workflow_runner/resource_files/job_template/sample_job_template/sample_job3.yml' are available at running.
+
+Dry run complete.
+```
+
+Run sample workflow.
+```
+# python cmd/workflow_runner.py resource_files/workflow/sample_workflow.yml -i resource_files/inventory/sample_inventory.txt -e "@resource_files/extra_vars/extra-vars.yml" -k
+SSH password:
+......................
+
+------ Job results ------
+==== ============= ============== ============ ============================ ===========
+ id      name           type         status              created              elapsed
+==== ============= ============== ============ ============================ ===========
+ 1    sample_job1   job_template   successful   2019-06-02T08:49:43.738865   06.343523
+ 2    sample_job2   job_template   successful   2019-06-02T08:49:50.082515   01.832642
+ 3    sample_job3   job_template   successful   2019-06-02T08:49:51.915217   01.879878
+==== ============= ============== ============ ============================ ===========
+
+------ Workflow process ended ------
+======================= ============================ ============
+ workflow_job_template            created               status
+======================= ============================ ============
+ sample_workflow.yml     2019-06-02T08:49:43.738723   successful
+======================= ============================ ============
+```
 
 ## Attention
 - job_template names in workflow YAML file have to be same as job_template YAML file name which without '.yml'.
