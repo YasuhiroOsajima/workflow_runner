@@ -2,5 +2,7 @@
 - job_template: sample_job1
   success:
     - job_template: sample_job2
-  always:
+      success:
+        - job_template: sample_job4
+  failure:
     - job_template: sample_job3

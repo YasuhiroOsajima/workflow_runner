@@ -112,22 +112,24 @@ def execute(dry_run: bool, workflow_file: str, inventory_file: str,
 
     workflow_node: w_parser.WorkflowNode = w_parser.parse(workflow_file,
                                                           dry_run, extra_vars)
-
-    workflow = w_run.WorkflowRunner(workflow_node, inventory_file)
+    workflow = w_run.WorkflowRunner(inventory_file)
 
     if dry_run:
         print()
         print('Check all variables are defined at running each job_template.')
         print('------')
 
-        workflow.dry_run()
+        workflow.dry_run(workflow_node)
 
         print("Dry run complete.")
     else:
         workflow_start: str = \
             datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")
 
-        job_result: [w_run.JobRecord] = workflow.run(auth_extra_vars, work_dir)
+        job_result: [w_run.JobRecord] = workflow.run(workflow_node,
+                                                     auth_extra_vars,
+                                                     work_dir)
+
         workflow_status: str = job_result[-1].status
         _print_result(workflow_file, workflow_start, workflow_status,
                       job_result)

@@ -3,6 +3,7 @@
 Runner for workflow.
 """
 
+import copy
 from datetime import datetime, timezone
 
 from internal.workflow import parser as w_parser
@@ -64,46 +65,46 @@ class JobRecord:
 class WorkflowRunner:
     """ Workflow runner. """
 
-    def __init__(self, workflow_node: w_parser.WorkflowNode,
-                 inventory_file: str):
-        self.workflow_node = workflow_node
+    def __init__(self, inventory_file: str):
         self.inventory_file_path = inventory_file
 
         # record results of running job_templates.
         self.executed = []
 
-    def dry_run(self):
+    def dry_run(self, workflow_node: w_parser.WorkflowNode):
         """
         Check each Ansible playbook's all of variables
         in each node's `before_extra_vars`.
         """
 
-        self.workflow_node.dry_run()
+        workflow_node.dry_run()
 
-        current = self.workflow_node.current_node
-        if self.workflow_node.current_node.success:
-            for node in self.workflow_node.current_node.success:
-                self.workflow_node.go_next_child(node)
-                self.dry_run()
-                self.workflow_node.go_back(current)
+        if workflow_node.current_node.success:
+            for node in workflow_node.current_node.success:
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.dry_run(child_workflow_node)
 
-        if self.workflow_node.current_node.failed:
-            for node in self.workflow_node.current_node.failed:
-                self.workflow_node.go_next_child(node)
-                self.dry_run()
-                self.workflow_node.go_back(current)
+        if workflow_node.current_node.failed:
+            for node in workflow_node.current_node.failed:
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.dry_run(child_workflow_node)
 
-        if self.workflow_node.current_node.always:
-            for node in self.workflow_node.current_node.always:
-                self.workflow_node.go_next_child(node)
-                self.dry_run()
-                self.workflow_node.go_back(current)
+        if workflow_node.current_node.always:
+            for node in workflow_node.current_node.always:
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.dry_run(child_workflow_node)
 
-    def run(self, auth_extra_vars: str, work_dir: str,
-            job_id: int = 1) -> list:
+    def run(self, workflow_node: w_parser.WorkflowNode, auth_extra_vars: str,
+            work_dir: str, job_id: int = 1) -> list:
         """ Execute each Ansible playbook. """
 
-        job_template_name: str = self.workflow_node.current_node.node_name
+        job_template_name: str = workflow_node.current_node.node_name
 
         print()
         print('-----')
@@ -111,9 +112,9 @@ class WorkflowRunner:
 
         record = JobRecord(job_id, job_template_name)
 
-        r_code = self.workflow_node.run(self.inventory_file_path,
-                                        auth_extra_vars,
-                                        work_dir)
+        r_code = workflow_node.run(self.inventory_file_path,
+                                   auth_extra_vars,
+                                   work_dir)
         record.set_end_time()
 
         if r_code == 0:
@@ -124,28 +125,33 @@ class WorkflowRunner:
         self.executed.append(record)
 
         # Go next job
-        current = self.workflow_node.current_node
-        if r_code == 0 and self.workflow_node.current_node.success:
-            for node in self.workflow_node.current_node.success:
+        if r_code == 0 and workflow_node.current_node.success:
+            for node in workflow_node.current_node.success:
                 job_id += 1
-                self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir, job_id)
-                self.workflow_node.go_back(current)
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.run(child_workflow_node, auth_extra_vars, work_dir,
+                         job_id=job_id)
 
-        elif r_code != 0 and self.workflow_node.current_node.failed:
-            for node in self.workflow_node.current_node.failed:
+        elif r_code != 0 and workflow_node.current_node.failed:
+            for node in workflow_node.current_node.failed:
                 job_id += 1
-                self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir, job_id)
-                self.workflow_node.go_back(current)
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.run(child_workflow_node, auth_extra_vars, work_dir,
+                         job_id=job_id)
         else:
             pass
 
-        if self.workflow_node.current_node.always:
-            for node in self.workflow_node.current_node.always:
+        if workflow_node.current_node.always:
+            for node in workflow_node.current_node.always:
                 job_id += 1
-                self.workflow_node.go_next_child(node)
-                self.run(auth_extra_vars, work_dir, job_id)
-                self.workflow_node.go_back(current)
+                child_workflow_node: w_parser.WorkflowNode = \
+                    copy.deepcopy(workflow_node)
+                child_workflow_node.go_next_child(node)
+                self.run(child_workflow_node, auth_extra_vars, work_dir,
+                         job_id=job_id)
 
         return self.executed

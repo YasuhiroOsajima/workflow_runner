@@ -10,7 +10,7 @@ class SwitchJobResult:
     """ Check methods state keyword."""
 
     success_keyword = {'success'}
-    failed_keyword = {'failed'}
+    failed_keyword = {'failure'}
     always_keyword = {'always'}
 
     @classmethod
@@ -148,7 +148,8 @@ class Node:
         """ This method is always called for top job_template """
 
         if dry_run:
-            self.prepare_job_node_dry_run(parent_node, extra_vars_arg, case_type)
+            self.prepare_job_node_dry_run(parent_node, extra_vars_arg,
+                                          case_type)
         else:
             self.prepare_job_node_run(parent_node, extra_vars_arg)
 

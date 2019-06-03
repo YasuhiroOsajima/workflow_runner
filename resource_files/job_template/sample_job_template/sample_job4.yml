@@ -1,0 +1,16 @@
+---
+- name: sample_job3
+  hosts: all
+  become: "yes"
+  gather_facts: false
+  tasks:
+
+    - name: get pwd
+      command: pwd
+      register: pwd_result
+      tags:
+        - skip_ansible_lint
+
+    - debug: var=pwd_result
+
+    - debug: var=pwd_stats
