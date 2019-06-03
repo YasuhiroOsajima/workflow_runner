@@ -57,27 +57,32 @@ class WorkflowNode:
         if self.current_node.define_stats:
             # Create copy playbook and replace playbook to use.
 
-            node_id = str(self.current_node.node_id)
-            time_stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            copy_playbook_path = "{}/tmp_playbook_{}_{}.yml".format(
-                work_dir, node_id, time_stamp)
+            node_id: str = str(self.current_node.node_id)
+            p_time_stamp: str = datetime.now().strftime("%Y%m%d%H%M%S%f")
+            copy_playbook_path: str = "{}/tmp_playbook_{}_{}.yml".format(
+                work_dir, node_id, p_time_stamp)
 
             with open(self.current_node.playbook_path, 'r') as pbf:
                 playbook: dict = yaml.load(stream=pbf, Loader=yaml.SafeLoader)
                 tasks = playbook[0]['tasks']
 
+                skip_num: int = 0
                 for idx, task in enumerate(tasks):
                     if 'set_stats' in task:
                         for v_name, v_val in task['set_stats']['data'].items():
-                            stats_var_path = "{}/{}-{}-{}.txt".format(
+                            time_stamp: str = \
+                                datetime.now().strftime("%Y%m%d%H%M%S%f")
+                            stats_var_path: str = "{}/{}-{}-{}.txt".format(
                                 work_dir, node_id, v_name, time_stamp)
                             set_stats_file_list.append(stats_var_path)
                             debug_job = [{'name': 'Register after extra_vars '
                                                   'temporarily file',
                                           'copy': {'dest': stats_var_path,
                                                    'content': v_val}}]
-                            tasks = \
-                                tasks[:idx + 1] + debug_job + tasks[idx + 1:]
+                            tasks = (tasks[:idx + 1 + skip_num]
+                                     + debug_job
+                                     + tasks[idx + 1 + skip_num:])
+                            skip_num += 1
 
             playbook[0]['tasks'] = tasks
             with open(copy_playbook_path, 'w') as tpf:
@@ -139,7 +144,8 @@ class WorkflowNode:
         necessary_at_started: set = result[0]
         necessary_in_tasks: dict = result[1]
 
-        defined_at_started: set = set(self.current_node.before_extra_vars.keys())
+        defined_at_started: set = \
+            set(self.current_node.before_extra_vars.keys())
         set_fact_in_tasks: dict = self.current_node.define_fact
         defined_on_vars_header: set = self.current_node.define_vars_header
 
