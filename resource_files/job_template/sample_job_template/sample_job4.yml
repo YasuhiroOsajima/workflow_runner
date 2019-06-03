@@ -1,5 +1,5 @@
 ---
-- name: sample_job3
+- name: sample_job4
   hosts: all
   become: "yes"
   gather_facts: false
