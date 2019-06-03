@@ -89,10 +89,12 @@ SSH password:
     success:
       - job_template: sample_job2
         success:
-          - job_template: sample_job3
+          - job_template: sample_job4
+    failure:
+      - job_template: sample_job3
   ```
   
-  You can not use other type style like this:
+  You can not use other type style with `success_nodes`, `always_nodes`,`failure_nodes`,`inventory_source`,`project`.  
   ```
   - failure_nodes:
   - inventory_source: 42

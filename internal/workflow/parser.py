@@ -66,7 +66,7 @@ class WorkflowNode:
                 playbook: dict = yaml.load(stream=pbf, Loader=yaml.SafeLoader)
                 tasks = playbook[0]['tasks']
 
-                skip_num: int = 0
+                skip_num: int = 1
                 for idx, task in enumerate(tasks):
                     if 'set_stats' in task:
                         for v_name, v_val in task['set_stats']['data'].items():
@@ -79,9 +79,8 @@ class WorkflowNode:
                                                   'temporarily file',
                                           'copy': {'dest': stats_var_path,
                                                    'content': v_val}}]
-                            tasks = (tasks[:idx + 1 + skip_num]
-                                     + debug_job
-                                     + tasks[idx + 1 + skip_num:])
+                            tasks = (tasks[:idx + skip_num] + debug_job
+                                     + tasks[idx + skip_num:])
                             skip_num += 1
 
             playbook[0]['tasks'] = tasks
