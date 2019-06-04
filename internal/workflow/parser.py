@@ -70,16 +70,26 @@ class WorkflowNode:
                 for idx, task in enumerate(tasks):
                     if 'set_stats' in task:
                         for v_name, v_val in task['set_stats']['data'].items():
+
+                            # Prepare tmp file path.
                             time_stamp: str = \
                                 datetime.now().strftime("%Y%m%d%H%M%S%f")
                             stats_var_path: str = "{}/{}-{}-{}.txt".format(
                                 work_dir, node_id, v_name, time_stamp)
                             set_stats_file_list.append(stats_var_path)
-                            debug_job = [{'name': 'Register after extra_vars '
-                                                  'temporarily file',
-                                          'copy': {'dest': stats_var_path,
-                                                   'content': v_val}}]
-                            tasks = (tasks[:idx + skip_num] + debug_job
+
+                            # Insert task to register after var tmp file.
+                            copy_task = {'name': 'Register after extra_vars '
+                                                 'temporarily file',
+                                         'copy': {'dest': stats_var_path,
+                                                  'content': v_val}}
+                            if 'item' in v_val:
+                                # This task has `with_items`.
+                                copy_task['with_items'] = task['with_items']
+                                if 'when' in task:
+                                    copy_task['when'] = task['when']
+
+                            tasks = (tasks[:idx + skip_num] + [copy_task]
                                      + tasks[idx + skip_num:])
                             skip_num += 1
 
