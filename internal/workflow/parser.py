@@ -79,10 +79,11 @@ class WorkflowNode:
                             set_stats_file_list.append(stats_var_path)
 
                             # Insert task to register after var tmp file.
+                            echo_com = \
+                                "echo {} >> {}".format(v_val, stats_var_path)
                             copy_task = {'name': 'Register after extra_vars '
                                                  'temporarily file',
-                                         'copy': {'dest': stats_var_path,
-                                                  'content': v_val}}
+                                         'shell': echo_com}
                             if 'item' in v_val:
                                 # This task has `with_items`.
                                 copy_task['with_items'] = task['with_items']
@@ -111,7 +112,7 @@ class WorkflowNode:
             for stats_file in set_stats_files:
                 try:
                     with open(stats_file, "r") as stf:
-                        stats_value: str = stf.read()
+                        stats_value: str = stf.read().rstrip('\n').rstrip('\r')
                         stats_key: str = stats_file.split('-')[1]
                         after_extra_vars.update({stats_key: stats_value})
                 except FileNotFoundError:
