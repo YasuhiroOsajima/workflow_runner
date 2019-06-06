@@ -5,6 +5,8 @@ Parse playbook structure and extract local variables.
 
 import yaml
 
+ANSIBLE_RESERVED_WORDS = {'inventory_dir', 'inventory_hostname'}
+
 
 def get_defined_variable_keys(playbook_path: str) -> dict:
     """ Extract local defined variables in target playbook. """
@@ -40,14 +42,37 @@ def get_defined_variable_keys(playbook_path: str) -> dict:
 def _is_variable(value) -> bool:
     """ argument is `str` type or `bool` type. """
     value_str: str = str(value)
-    return '{{' in value_str and '.' not in value_str
+
+    vars_exists = False
+    for sp_word in value_str.split('{{ '):
+        inner_word: str = sp_word.split(' }}')[0]
+        if ' }}' in sp_word and '.' not in inner_word:
+            if inner_word in ANSIBLE_RESERVED_WORDS:
+                continue
+
+            vars_exists = True
+
+    return vars_exists
 
 
-def _get_variable_name(value: str) -> set:
+def _get_variable_name(value) -> set:
+    value_str: str = str(value)
+
     necessary = set()
-    for sp_word in value.split('{{ '):
-        if ' }}' in sp_word:
-            necessary.add(sp_word.split(' }}')[0])
+    for sp_word in value_str.split('{{ '):
+        inner_word: str = sp_word.split(' }}')[0]
+
+        if ' }}' in sp_word and '.' not in inner_word:
+            if '[' in inner_word:
+                inner_word = inner_word.split('[')[0]
+
+            if "% set {}".format(inner_word) in value:
+                continue
+
+            if inner_word in ANSIBLE_RESERVED_WORDS:
+                continue
+
+            necessary.add(inner_word)
 
     return necessary
 
