@@ -21,7 +21,7 @@ netifaces==0.10.9
 openstacksdk==0.28.0
 os-client-config==1.32.0
 os-service-types==1.7.0
-paramiko==2.4.2
+paramiko==2.10.1
 pbr==5.2.0
 pyasn1==0.4.5
 pycparser==2.19
